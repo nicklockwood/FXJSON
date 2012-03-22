@@ -35,7 +35,7 @@ To use FXJSON, just drag the class files into your project. The FXJSON methods a
 Configuration
 -----------------
 
-FXJSON has the following configurations constants. These can be set in your project either in code (prior to import FXJSON.h) or as preprocessor macros in the build settings:
+FXJSON has the following configurations constants. These can be set as preprocessor macros in the build settings if you wish to override the defaults:
 
     FXJSON_OMIT_NULL_OBJECT_VALUES
     
@@ -75,18 +75,18 @@ At present, FXJSON only supports unicode literals with values up to \uFFFF (exce
 Performance
 -----------------
 
-FXJSON is not the fastest JSON parser, but it's far from the slowest. In stats it ranked 3rd out of the 6 most popular 3rd party JSON parsers.
+FXJSON is not the fastest JSON parser, but it's far from the slowest. In stats it ranked 4th out of the 6 most popular 3rd party JSON parsers.
 
 It's worth noting that since FXJSON automatically defaults to using NSJSONSerialization on iOS5, it would actually rank second if that option was enabled.
 
-    JSONKit                     11.196 ms
-    NextiveJson                 36.923 ms
-    FXJSON                      43.130 ms
+    JSONKit                     10.942 ms
+    NextiveJson                 37.001 ms
     YAJL                        55.896 ms
-    SBJson                      77.727 ms
-    TouchJSON                  114.125 ms
+    FXJSON                      65.618 ms
+    SBJson                      78.108 ms
+    TouchJSON                  113.995 ms
     
-    NSJSONSerialization         32.138 ms
+    NSJSONSerialization         32.044 ms
 
 Comparison performed on iOS 5.1 on an iPhone 4S. Tests were conducted with the `FXJSON_OMIT_NULL_OBJECT_VALUES` and `FXJSON_USE_NSJON_IF_AVAILABLE` options disabled. Check out the benchmark app for yourself here:
 
