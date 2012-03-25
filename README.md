@@ -1,13 +1,14 @@
 Purpose
 --------------
 
-FXJSON is a lightweight, reasonably fast JSON parser for iOS and Mac OS. It's not the fastest but it's fast enough, and it has some neat features:
+FXJSON is a lightweight, reasonably fast JSON parser for iOS and Mac OS. It's not the fastest but it's fast enough (see performance benchmarks below), and it has some neat features:
 
 - Fully ARC compatible (also works without ARC)
 - Simple - just one class and the code is easy to understand
 - No compiler warnings
 - Can optionally strip null values from dictionaries
 - Can optionally use NSJSONSerialization on iOS 5 and above
+- Can handle JSON with dangling commas in arrays/objects
 
 
 Supported iOS & SDK Versions
@@ -68,8 +69,6 @@ FXJSON always returns mutable container objects (NSMutableArray or NSDictionary)
 FXJSON always returns *immutable* strings.
 
 FXJSON will accept any root object type as long as it is valid JSON, so the object returned may be an NSMutableDictionary, NSMutableArray, NSString, NSNumber or NSNull.
-
-At present, FXJSON only supports unicode literals with values up to \uFFFF (except on iOS5) - this will be rectified in a future release. unicode characters with code points of \uFFFF or above will be omitted.
 
 
 Performance

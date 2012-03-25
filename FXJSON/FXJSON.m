@@ -1,7 +1,7 @@
 //
 //  FXJSON.m
 //
-//  Version 1.0
+//  Version 1.0.1
 //
 //  Created by Nick Lockwood on 27/10/2009.
 //  Copyright 2009 Charcoal Design
@@ -461,17 +461,25 @@ id FXparseString(char *buffer, NSInteger *index, NSInteger length)
                             if (literal)
                             {
                                 i += 4;
-                                unsigned int _character = 0;
+                                uint32_t c = 0;
                                 NSScanner *scanner = [NSScanner scannerWithString:literal];
-                                [scanner scanHexInt:&_character];
+                                [scanner scanHexInt:&c];
                                 
-                                if (_character < 0xffff)
+                                if (c <= 0xffff)
                                 {
-                                    FXappendCharacter(&output, _character, &parsedLength, &capacity);
+                                    FXappendCharacter(&output, c, &parsedLength, &capacity);
                                 }
                                 else
                                 {
-                                    //TODO - unichars with codepoints of Oxffff and above
+                                    //convert character to surrogate pair
+                                    uint16_t x = (uint16_t)c;
+                                    uint16_t u = (c >> 16) & ((1 << 5) - 1);
+                                    uint16_t w = (uint16_t)u - 1;
+                                    unichar high = 0xd800 | (w << 6) | x >> 10;
+                                    unichar low = (uint16_t)(0xdc00 | (x & ((1 << 10) - 1)));
+                                    
+                                    FXappendCharacter(&output, high, &parsedLength, &capacity);
+                                    FXappendCharacter(&output, low, &parsedLength, &capacity);
                                 }
                             }
                         }
@@ -672,6 +680,11 @@ void FXstripNulls(id object)
 
 + (id)objectWithJSONData:(NSData *)data
 {
+    if (!data)
+    {
+        return nil;
+    }
+    
     if (FXJSON_USE_NSJON_IF_AVAILABLE)
     {
         if ([NSJSONSerialization class])
