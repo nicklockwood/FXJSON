@@ -685,7 +685,7 @@ void FXstripNulls(id object)
         return nil;
     }
     
-    if (FXJSON_USE_NSJON_IF_AVAILABLE)
+    if (FXJSON_USE_NSJSON_IF_AVAILABLE)
     {
         if ([NSJSONSerialization class])
         {

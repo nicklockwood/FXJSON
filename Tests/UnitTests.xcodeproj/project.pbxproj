@@ -235,7 +235,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
-					"FXJSON_USE_NSJON_IF_AVAILABLE=NO",
+					"FXJSON_USE_NSJSON_IF_AVAILABLE=NO",
 				);
 				PRODUCT_NAME = UnitTests;
 			};
@@ -246,7 +246,7 @@
 			buildSettings = {
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "UnitTests/UnitTests-Prefix.pch";
-				GCC_PREPROCESSOR_DEFINITIONS = "FXJSON_USE_NSJON_IF_AVAILABLE=NO";
+				GCC_PREPROCESSOR_DEFINITIONS = "FXJSON_USE_NSJSON_IF_AVAILABLE=NO";
 				PRODUCT_NAME = UnitTests;
 			};
 			name = Release;
