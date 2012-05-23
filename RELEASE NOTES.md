@@ -1,3 +1,7 @@
+Version 1.0.2
+
+- Fixed bug in number parsing where only the last digit would be used
+
 Version 1.0.1
 
 - Now handles unicode with codepoints above FFFF

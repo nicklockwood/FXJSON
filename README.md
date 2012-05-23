@@ -42,7 +42,7 @@ FXJSON has the following configurations constants. These can be set as preproces
     
 This option will disable generation of NSNull objects for null values insider JSON {...} objects. This is often desirable because a program that receives an NSNull when it expects another object type may crash, whereas no value (nil) is usually handled gracefully. With this option enabled, null values in arrays will still output as NSNull because removing these would affect the array indexes. Defaults to YES.
 
-    FXJSON_USE_NSJON_IF_AVAILABLE
+    FXJSON_USE_NSJSON_IF_AVAILABLE
     
 This option will cause FXJSON to make use of the NSJSONSerialization class on iOS5 and above. This is desirable because the NSJSONSerialization class is faster than FXJSON in most benchmarks.
 

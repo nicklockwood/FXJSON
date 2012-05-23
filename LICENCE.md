@@ -1,6 +1,6 @@
 FXJSON
 
-Version 1.0.1, March 25th, 2012
+Version 1.0.2, May 23rd, 2012
 
 Copyright (C) 2012 Charcoal Design
 

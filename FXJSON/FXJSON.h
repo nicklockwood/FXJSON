@@ -1,7 +1,7 @@
 //
 //  FXJSON.h
 //
-//  Version 1.0.1
+//  Version 1.0.2
 //
 //  Created by Nick Lockwood on 27/10/2009.
 //  Copyright 2009 Charcoal Design

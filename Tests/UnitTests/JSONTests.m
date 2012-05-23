@@ -38,6 +38,13 @@
     NSAssert(number == [[FXJSON objectWithJSONEncodedString:json] doubleValue], @"Number test failed");
 }
 
+- (void)testNumber2
+{
+    double number = 1234;
+    NSString *json = @"1234 ";
+    NSAssert(number == [[FXJSON objectWithJSONEncodedString:json] doubleValue], @"Number test 2 failed");
+}
+
 - (void)testNull
 {
     NSString *json = @"null";

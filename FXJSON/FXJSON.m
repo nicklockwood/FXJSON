@@ -1,7 +1,7 @@
 //
 //  FXJSON.m
 //
-//  Version 1.0.1
+//  Version 1.0.2
 //
 //  Created by Nick Lockwood on 27/10/2009.
 //  Copyright 2009 Charcoal Design
@@ -553,15 +553,18 @@ id FXparseNumber(char *buffer, NSInteger *index, NSInteger length)
         else
         {
             //end of number
-            (*index) = i-1;
             break;
         }
     }
     
+    //grab digits as string
     NSString *string = [[NSString alloc] initWithBytesNoCopy:buffer + (*index) length:parsedLength encoding:NSUTF8StringEncoding freeWhenDone:NO];
     
     //parse number
     NSNumber *number = [NSNumber numberWithDouble:[string doubleValue]];
+    
+    //update index
+    (*index) += parsedLength - 1;
     
 #if !__has_feature(objc_arc)
     
