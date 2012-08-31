@@ -1,7 +1,7 @@
 //
 //  FXJSON.m
 //
-//  Version 1.0.2
+//  Version 1.0.3
 //
 //  Created by Nick Lockwood on 27/10/2009.
 //  Copyright 2009 Charcoal Design
@@ -143,7 +143,16 @@ static inline void FXappendCharacter(unichar **buffer, unichar character, NSInte
     if (*length >= *capacity)
     {
         (*capacity) *= 2;
-        *buffer = realloc(*buffer, sizeof(unichar) * (*capacity));
+        unichar *_buffer = realloc(*buffer, sizeof(unichar) * (*capacity));
+        if (_buffer)
+        {
+            *buffer = _buffer;
+        }
+        else
+        {
+            //failed
+            return;
+        }
     }
     (*buffer)[(*length) ++] = character;
 }
@@ -513,7 +522,17 @@ id FXparseString(char *buffer, NSInteger *index, NSInteger length)
         if (state == kFinish)
         {
             (*index) = i;
-            output = realloc(output, sizeof(unichar) * parsedLength);
+            unichar *_output = parsedLength? realloc(output, sizeof(unichar) * parsedLength): NULL;
+            if (_output)
+            {
+                output = _output;
+            }
+            else
+            {
+                //failed
+                free(output);
+                output = NULL;
+            }
             break;
         }
     }
@@ -525,7 +544,7 @@ id FXparseString(char *buffer, NSInteger *index, NSInteger length)
     }
     
     //build string
-    NSString *string = [[NSString alloc] initWithBytesNoCopy:output length:sizeof(unichar) * parsedLength encoding:NSUTF16LittleEndianStringEncoding freeWhenDone:YES];
+    NSString *string = output? [[NSString alloc] initWithBytesNoCopy:output length:sizeof(unichar) * parsedLength encoding:NSUTF16LittleEndianStringEncoding freeWhenDone:YES]: nil;
     
 #if !__has_feature(objc_arc)
     

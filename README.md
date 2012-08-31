@@ -14,7 +14,7 @@ FXJSON is a lightweight, reasonably fast JSON parser for iOS and Mac OS. It's no
 Supported iOS & SDK Versions
 -----------------------------
 
-* Supported build target - iOS 5.1 / Mac OS 10.7 (Xcode 4.3.1, Apple LLVM compiler 3.0)
+* Supported build target - iOS 5.1 / Mac OS 10.7 (Xcode 4.4.1, Apple LLVM compiler 4.0)
 * Earliest supported deployment target - iOS 4.3 / Mac OS 10.6
 * Earliest compatible deployment target - iOS 3.0
 

@@ -1,3 +1,7 @@
+Version 1.0.3
+
+- Fixed compiler warning under Xcode 4.4.1
+
 Version 1.0.2
 
 - Fixed bug in number parsing where only the last digit would be used
