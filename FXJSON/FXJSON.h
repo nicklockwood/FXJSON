@@ -1,7 +1,7 @@
 //
 //  FXJSON.h
 //
-//  Version 1.0.3
+//  Version 1.1
 //
 //  Created by Nick Lockwood on 27/10/2009.
 //  Copyright 2009 Charcoal Design
@@ -33,6 +33,10 @@
 #import <Foundation/Foundation.h>
 
 
+#ifndef FXJSON_OMIT_NULL_ARRAY_VALUES
+#define FXJSON_OMIT_NULL_ARRAY_VALUES NO
+#endif
+
 #ifndef FXJSON_OMIT_NULL_OBJECT_VALUES
 #define FXJSON_OMIT_NULL_OBJECT_VALUES YES
 #endif
@@ -42,8 +46,24 @@
 #endif
 
 
+@protocol FXJSONDelegate <NSObject>
+@optional
+
+- (void)didStartJSONParsing;
+- (void)didStartJSONArray;
+- (void)didStartJSONObject;
+- (void)didFindJSONKey:(NSString *)key;
+- (void)didFindJSONValue:(id)value;
+- (void)didEndJSONObject;
+- (void)didEndJSONArray;
+- (void)didEndJSONParsing;
+
+@end
+
+
 @interface FXJSON : NSObject
 
++ (void)enumerateJSONData:(NSData *)data withDelegate:(id<FXJSONDelegate>)delegate;
 + (id)objectWithJSONEncodedString:(NSString *)string;
 + (id)objectWithJSONData:(NSData *)data;
 

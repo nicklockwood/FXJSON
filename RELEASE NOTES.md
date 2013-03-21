@@ -1,3 +1,8 @@
+Version 1.1
+
+- Added SAX-style parsing method (similar to NSXMLParser)
+- Added option to skip null values in arrays (off by default)
+
 Version 1.0.3
 
 - Fixed compiler warning under Xcode 4.4.1

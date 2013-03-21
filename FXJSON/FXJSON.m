@@ -1,7 +1,7 @@
 //
 //  FXJSON.m
 //
-//  Version 1.0.3
+//  Version 1.1
 //
 //  Created by Nick Lockwood on 27/10/2009.
 //  Copyright 2009 Charcoal Design
@@ -35,14 +35,14 @@
 
 @interface FXJSON ()
 
-id FXparseDictionary(char *buffer, NSInteger *index, NSInteger length);
-id FXparseArray(char *buffer, NSInteger *index, NSInteger length);
+id FXparseObject(char *buffer, NSInteger *start, NSInteger length, id<FXJSONDelegate> delegate);
+id FXparseDictionary(char *buffer, NSInteger *index, NSInteger length, id<FXJSONDelegate> delegate);
+id FXparseArray(char *buffer, NSInteger *index, NSInteger length, id<FXJSONDelegate> delegate);
 id FXparseString(char *buffer, NSInteger *index, NSInteger length);
 id FXparseNumber(char *buffer, NSInteger *index, NSInteger length);
 id FXparseTrue(char *buffer, NSInteger *index, NSInteger length);
 id FXparseFalse(char *buffer, NSInteger *index, NSInteger length);
 id FXparseNull(char *buffer, NSInteger *index, NSInteger length);
-id FXparseObject(char *buffer, NSInteger *start, NSInteger length);
 void FXstripNulls(id object);
 
 @end
@@ -157,7 +157,43 @@ static inline void FXappendCharacter(unichar **buffer, unichar character, NSInte
     (*buffer)[(*length) ++] = character;
 }
 
-id FXparseDictionary(char *buffer, NSInteger *index, NSInteger length)
+id FXparseObject(char *buffer, NSInteger *index, NSInteger length, id<FXJSONDelegate> delegate)
+{
+    //skip whitespace
+    for (NSInteger i = *index; i < length; i++)
+    {
+        char character = buffer[i];
+        if (FXisWhiteSpace(character))
+        {
+            (*index)++;
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+    char character = buffer[*index];
+    switch (character)
+    {
+        case '{':
+            return FXparseDictionary(buffer, index, length, delegate);
+        case '[':
+            return FXparseArray(buffer, index, length, delegate);
+        case '"':
+            return FXparseString(buffer, index, length);
+        case 'n':
+            return FXparseNull(buffer, index, length);
+        case 't':
+            return FXparseTrue(buffer, index, length);
+        case 'f':
+            return FXparseFalse(buffer, index, length);
+        default:
+            return FXparseNumber(buffer, index, length);
+    }
+}
+
+id FXparseDictionary(char *buffer, NSInteger *index, NSInteger length, id<FXJSONDelegate> delegate)
 {
     //constants
     enum
@@ -175,112 +211,139 @@ id FXparseDictionary(char *buffer, NSInteger *index, NSInteger length)
     NSString *key;
     NSObject *object;
     
+    //delegate methods
+    BOOL delegateDidStart = [delegate respondsToSelector:@selector(didStartJSONObject)];
+    BOOL delegateDidEnd = [delegate respondsToSelector:@selector(didEndJSONObject)];
+    BOOL delegateKey = [delegate respondsToSelector:@selector(didFindJSONKey:)];
+    BOOL delegateValue = [delegate respondsToSelector:@selector(didFindJSONValue:)];
+    
     //parse input
     NSMutableDictionary *dictionary = nil;
     for (NSInteger i = *index; i < length; i++)
     {
-        char character = buffer[i];
-        if (FXisWhiteSpace(character))
+        @autoreleasepool
         {
-            //white space
-            continue;
-        }
-        switch (state)
-        {
-            case kKeyExpected:
+            char character = buffer[i];
+            if (FXisWhiteSpace(character))
             {
-                if (character == '}')
+                //white space
+                continue;
+            }
+            switch (state)
+            {
+                case kKeyExpected:
                 {
-                    //end of dictionary, not technically allowed by spec
-                    state = kFinish;
-                }
-                else
-                {
-                    //test for string
-                    if ((key = FXparseString(buffer, &i, length)))
+                    if (character == '}')
                     {
-                        //now we need the value
-                        state = kColonExpected;
+                        //end of dictionary (not technically allowed by spec)
+                        if (delegateDidEnd)
+                        {
+                            [delegate didEndJSONObject];
+                        }
+                        state = kFinish;
                     }
                     else
                     {
-                        //invalid key, unrecoverable
+                        //test for string
+                        if ((key = FXparseString(buffer, &i, length)))
+                        {
+                            if (delegateKey) [delegate didFindJSONKey:key];
+                            
+                            //now we need the value
+                            state = kColonExpected;
+                        }
+                        else
+                        {
+                            //invalid key, unrecoverable
+                            return nil;
+                        }
+                    }
+                    break;
+                }
+                case kColonExpected:
+                {
+                    if (character == ':')
+                    {
+                        //now for the value
+                        state = kValueExpected;
+                    }
+                    else
+                    {
+                        //no key specified, unrecoverable
                         return nil;
                     }
+                    break;
                 }
-                break;
-            }
-            case kColonExpected:
-            {
-                if (character == ':')
+                case kValueExpected:
                 {
-                    //now for the value
-                    state = kValueExpected;
-                }
-                else
-                {
-                    //no key specified, unrecoverable
-                    return nil;
-                }
-                break;
-            }
-            case kValueExpected:
-            {
-                //test for types
-                if ((object = FXparseObject(buffer, &i, length)))
-                {
-                    //add object to dictionary
-                    if (!FXJSON_OMIT_NULL_OBJECT_VALUES || object != [NSNull null])
+                    //test for types
+                    if ((object = FXparseObject(buffer, &i, length, delegate)))
                     {
-                        [dictionary setObject:object forKey:key];
+                        if (delegate)
+                        {
+                            if (delegateValue) [delegate didFindJSONValue:object];
+                        }
+                        else if (!FXJSON_OMIT_NULL_OBJECT_VALUES || object != [NSNull null])
+                        {
+                            //add object to dictionary
+                            [dictionary setObject:object forKey:key];
+                        }
+                        state = kCommaExpected;
                     }
-                    state = kCommaExpected;
+                    else
+                    {
+                        //unrecognised type, unrecoverable
+                        return nil;
+                    }
+                    break;
                 }
-                else
+                case kCommaExpected:
                 {
-                    //unrecognised type, unrecoverable
-                    return nil;
+                    if (character == '}')
+                    {
+                        //end of dictionary
+                        if (delegateDidEnd)
+                        {
+                            [delegate didEndJSONObject];
+                        }
+                        state = kFinish;
+                    }
+                    else if (character == ',')
+                    {
+                        //next key
+                        state = kKeyExpected;
+                    }
+                    else
+                    {
+                        //unexpected delimiter, unrecoverable
+                        return nil;
+                    }
+                    break;
                 }
-                break;
+                case kStart:
+                {
+                    if (character == '{')
+                    {
+                        if (delegateDidStart)
+                        {
+                            [delegate didStartJSONObject];
+                        }
+                        dictionary = [NSMutableDictionary dictionary];
+                        state = kKeyExpected;
+                    }
+                    else
+                    {
+                        //not a dictionary
+                        return nil;
+                    }
+                    break;
+                }
             }
-            case kCommaExpected:
+            if (state == kFinish)
             {
-                if (character == '}')
-                {
-                    //end of dictionary
-                    state = kFinish;
-                }
-                else if (character == ',')
-                {
-                    //next key
-                    state = kKeyExpected;
-                }
-                else
-                {
-                    //unexpected delimiter, unrecoverable
-                    return nil;
-                }
+                (*index) = i;
                 break;
             }
-            case kStart:
-            {
-                if (character == '{')
-                {
-                    dictionary = [NSMutableDictionary dictionary];
-                    state = kKeyExpected;
-                }
-                else
-                {
-                    //not a dictionary
-                    return nil;
-                }
-                break;
-            }
-        }
-        if (state == kFinish)
-        {
-            (*index) = i;
-            break;
         }
     }
     
@@ -294,7 +357,7 @@ id FXparseDictionary(char *buffer, NSInteger *index, NSInteger length)
     return dictionary;
 }
 
-id FXparseArray(char *buffer, NSInteger *index, NSInteger length)
+id FXparseArray(char *buffer, NSInteger *index, NSInteger length, id<FXJSONDelegate> delegate)
 {
     //constants
     enum
@@ -308,81 +371,108 @@ id FXparseArray(char *buffer, NSInteger *index, NSInteger length)
     //parser state
     int state = kStart;
     
+    //delegate methods
+    BOOL delegateDidStart = [delegate respondsToSelector:@selector(didStartJSONArray)];
+    BOOL delegateDidEnd = [delegate respondsToSelector:@selector(didEndJSONArray)];
+    BOOL delegateValue = [delegate respondsToSelector:@selector(didFindJSONValue:)];
+    
     //parse input
     NSMutableArray *array = nil;
     for (NSInteger i = *index; i < length; i++)
     {
-        char character = buffer[i];
-        if (FXisWhiteSpace(character))
+        @autoreleasepool
         {
-            //white space
-            continue;
-        }
-        switch (state)
-        {
-            case kValueExpected:
+            char character = buffer[i];
+            if (FXisWhiteSpace(character))
             {
-                if (character == ']')
+                //white space
+                continue;
+            }
+            switch (state)
+            {
+                case kValueExpected:
                 {
-                    //end of array, not technically allowed by spec
-                    state = kFinish;
-                }
-                else
-                {
-                    //test for types
-                    id object;
-                    if ((object = FXparseObject(buffer, &i, length)))
+                    if (character == ']')
                     {
-                        //add object to array
-                        [array addObject:object];
-                        state = kCommaExpected;
+                        //end of array (not technically allowed by spec)
+                        if (delegateDidEnd)
+                        {
+                            [delegate didEndJSONArray];
+                        }
+                        state = kFinish;
                     }
                     else
                     {
-                        //unrecognised type, unrecoverable
+                        //test for types
+                        id object;
+                        if ((object = FXparseObject(buffer, &i, length, delegate)))
+                        {
+                            if (delegate)
+                            {
+                                if (delegateValue) [delegate didFindJSONValue:object];
+                            }
+                            else if (!FXJSON_OMIT_NULL_ARRAY_VALUES || object != [NSNull null])
+                            {
+                                //add object to array
+                                [array addObject:object];
+                            }
+                            state = kCommaExpected;
+                        }
+                        else
+                        {
+                            //unrecognised type, unrecoverable
+                            return nil;
+                        }
+                    }
+                    break;
+                }
+                case kCommaExpected:
+                {
+                    if (character == ']')
+                    {
+                        //end of array
+                        if (delegateDidEnd)
+                        {
+                            [delegate didEndJSONArray];
+                        }
+                        state = kFinish;
+                    }
+                    else if (character == ',')
+                    {
+                        //next value
+                        state = kValueExpected;
+                    }
+                    else
+                    {
+                        //unexpected delimiter, unrecoverable
                         return nil;
                     }
+                    break;
                 }
-                break;
+                case kStart:
+                {
+                    if (character == '[')
+                    {
+                        if (delegateDidStart)
+                        {
+                            [delegate didStartJSONArray];
+                        }
+                        array = [NSMutableArray array];
+                        state = kValueExpected;
+                    }
+                    else
+                    {
+                        //not an array
+                        return nil;
+                    }
+                    break;
+                }
             }
-            case kCommaExpected:
+            if (state == kFinish)
             {
-                if (character == ']')
-                {
-                    //end of array
-                    state = kFinish;
-                }
-                else if (character == ',')
-                {
-                    //next value
-                    state = kValueExpected;
-                }
-                else
-                {
-                    //unexpected delimiter, unrecoverable
-                    return nil;
-                }
+                (*index) = i;
                 break;
             }
-            case kStart:
-            {
-                if (character == '[')
-                {
-                    array = [NSMutableArray array];
-                    state = kValueExpected;
-                }
-                else
-                {
-                    //not an array
-                    return nil;
-                }
-                break;
-            }
-        }
-        if (state == kFinish)
-        {
-            (*index) = i;
-            break;
         }
     }
     
@@ -633,42 +723,6 @@ id FXparseNull(char *buffer, NSInteger *index, NSInteger length)
     return nil;
 }
 
-id FXparseObject(char *buffer, NSInteger *index, NSInteger length)
-{
-    //skip whitespace
-    for (NSInteger i = *index; i < length; i++)
-    {
-        char character = buffer[i];
-        if (FXisWhiteSpace(character))
-        {
-            (*index)++;
-        }
-        else
-        {
-            break;
-        }
-    }
-    
-    char character = buffer[*index];
-    switch (character)
-    {
-        case '{':
-            return FXparseDictionary(buffer, index, length);
-        case '[':
-            return FXparseArray(buffer, index, length);
-        case '"':
-            return FXparseString(buffer, index, length);
-        case 'n':
-            return FXparseNull(buffer, index, length);
-        case 't':
-            return FXparseTrue(buffer, index, length);
-        case 'f':
-            return FXparseFalse(buffer, index, length);
-        default:
-            return FXparseNumber(buffer, index, length);
-    }
-}
-
 void FXstripNulls(id object)
 {
     if ([object isKindOfClass:[NSDictionary class]])
@@ -693,6 +747,22 @@ void FXstripNulls(id object)
             FXstripNulls(value);
         }
     }
+}
+
++ (void)enumerateJSONData:(NSData *)data withDelegate:(id<FXJSONDelegate>)delegate
+{
+    NSInteger index = 0;
+    NSInteger length = [data length];
+    [delegate didStartJSONParsing];
+    id object;
+    if ((object = FXparseObject((char *)data.bytes, &index, length, delegate)))
+    {
+        if ([delegate respondsToSelector:@selector(didFindJSONValue:)])
+        {
+            [delegate didFindJSONValue:object];
+        }
+    }
+    [delegate didEndJSONParsing];
 }
 
 + (id)objectWithJSONEncodedString:(NSString *)string
@@ -723,7 +793,7 @@ void FXstripNulls(id object)
     
     NSInteger index = 0;
     NSInteger length = [data length];
-    return FXparseObject((char *)data.bytes, &index, length);
+    return FXparseObject((char *)data.bytes, &index, length, nil);
 }
 
 @end

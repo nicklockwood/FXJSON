@@ -8,6 +8,54 @@
 #import "JSONTests.h"
 #import "FXJSON.h"
 
+
+@interface JSONTestDelegate : NSObject <FXJSONDelegate>
+
+@property (nonatomic, assign) BOOL didStart;
+@property (nonatomic, assign) BOOL didStartObject;
+@property (nonatomic, assign) BOOL didStartArray;
+@property (nonatomic, assign) BOOL didEndObject;
+@property (nonatomic, assign) BOOL didEndArray;
+@property (nonatomic, assign) BOOL didEnd;
+
+@end
+
+
+@implementation JSONTestDelegate
+
+- (void)didStartJSONParsing
+{
+    _didStart = YES;
+}
+
+- (void)didStartJSONObject
+{
+    _didStartObject = YES;
+}
+
+- (void)didStartJSONArray
+{
+    _didStartArray = YES;
+}
+
+- (void)didEndJSONArray
+{
+    _didEndArray = YES;
+}
+
+- (void)didEndJSONObject
+{
+    _didEndObject = YES;
+}
+
+- (void)didEndJSONParsing
+{
+    _didEnd = YES;
+}
+
+@end
+
+
 @implementation JSONTests
 
 - (void)testString
@@ -45,6 +93,13 @@
     NSAssert(number == [[FXJSON objectWithJSONEncodedString:json] doubleValue], @"Number test 2 failed");
 }
 
+- (void)testNumber3
+{
+    double number = 0.1234;
+    NSString *json = @"0.1234";
+    NSAssert(number == [[FXJSON objectWithJSONEncodedString:json] doubleValue], @"Number test 3 failed");
+}
+
 - (void)testNull
 {
     NSString *json = @"null";
@@ -76,6 +131,22 @@
 {
     NSAssert([FXJSON objectWithJSONEncodedString:nil] == nil, @"Nil string input test failed");
     NSAssert([FXJSON objectWithJSONData:nil] == nil, @"Nil data input test failed");
+}
+
+- (void)testParsing
+{
+    NSString *json = @"{\"Hello\": null, \"World\": [true, false]}";
+    NSData *data = [json dataUsingEncoding:NSUTF8StringEncoding];
+    
+    JSONTestDelegate *delegate = [[JSONTestDelegate alloc] init];
+    [FXJSON enumerateJSONData:data withDelegate:delegate];
+    
+    NSAssert(delegate.didStart, @"Parsing test failed");
+    NSAssert(delegate.didStartObject, @"Parsing test failed");
+    NSAssert(delegate.didStartArray, @"Parsing test failed");
+    NSAssert(delegate.didEndObject, @"Parsing test failed");
+    NSAssert(delegate.didEndArray, @"Parsing test failed");
+    NSAssert(delegate.didEnd, @"Parsing test failed");
 }
 
 @end
